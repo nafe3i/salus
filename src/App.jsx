@@ -4,6 +4,7 @@ import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+
 function App() {
   return (
     <BrowserRouter>
