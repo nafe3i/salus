@@ -13,8 +13,8 @@ function HealthAdvice() {
 
     try {
       const data = await generateAdvice();
-      setAdvice(data.advice);
-      setGeneratedAt(data.generated_at);
+      setAdvice(data.advice || "Aucun conseil disponible.");
+      setGeneratedAt(data.generated_at || "");
     } catch (error) {
       console.error(error);
       setAdvice("Erreur lors de la génération du conseil.");
