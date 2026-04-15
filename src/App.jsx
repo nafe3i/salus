@@ -1,23 +1,27 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import DoctorsList from './pages/doctors/DoctorsList';
-import DoctorDetail from './pages/doctors/DoctorDetail';
-import Appointments from './pages/appointments/Appointments';
-import BookAppointment from './pages/appointments/BookAppointment';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import Dashboard from "./pages/dashboard/Dashboard";
+import ProtectedRoute from "./routes/ProtectedRoute";
+
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Routes>
-          <Route path="/" element={<DoctorsList />} />
-          <Route path="/doctors" element={<DoctorsList />} />
-          <Route path="/doctors/:id" element={<DoctorDetail />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/appointments/book/:doctorId" element={<BookAppointment />} />
-        </Routes>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
