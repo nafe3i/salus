@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from "react";
-import api from "../services/api";
+import authService from "../services/authService";
 
 export const AuthContext = createContext();
 
@@ -9,47 +9,65 @@ export const AuthProvider = ({ children }) => {
 
   // LOGIN
   const login = async (form) => {
-    const res = await api.post("/login", form);
-
-    const token = res.data.data.token;
-    const user = res.data.data.user;
-
-    localStorage.setItem("token", token);
-    setUser(user);
-
-    return user;
+    try {
+      console.log('AuthContext login appelé');
+      const result = await authService.login(form);
+      console.log('AuthContext login result:', result);
+      
+      if (result.success) {
+        // La structure Laravel est result.data.data.user
+        const userData = result.data?.data?.user || result.data?.user || result.data;
+        console.log('User data extracted:', userData);
+        setUser(userData);
+        return userData;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('AuthContext login error:', error);
+      throw error;
+    }
   };
 
   // REGISTER
   const register = async (form) => {
-    const res = await api.post("/register", form);
-
-    const token = res.data.data.token;
-    const user = res.data.data.user;
-
-    localStorage.setItem("token", token);
-    setUser(user);
-
-    return user;
+    try {
+      const result = await authService.register(form);
+      
+      if (result.success) {
+        // La structure Laravel est result.data.data.user
+        const userData = result.data?.data?.user || result.data?.user || result.data;
+        setUser(userData);
+        return userData;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      throw error;
+    }
   };
 
   // LOGOUT
   const logout = async () => {
-    try {
-      await api.post("/logout");
-    } catch (e) {}
-
-    localStorage.removeItem("token");
+    authService.logout();
     setUser(null);
+  };
+
+  // CHECK AUTHENTICATION STATUS
+  const isAuthenticated = () => {
+    return authService.isAuthenticated();
   };
 
   // GET USER (/me)
   const getUser = async () => {
     try {
-      const res = await api.get("/me");
-      setUser(res.data.data);
+      const result = await authService.getCurrentUser();
+      if (result.success) {
+        setUser(result.data);
+      } else {
+        setUser(null);
+      }
     } catch (e) {
-      localStorage.removeItem("token");
       setUser(null);
     } finally {
       setLoading(false);
@@ -57,9 +75,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      getUser();
-    } else {
+    // Check if user is already stored in localStorage
+    try {
+      const storedUser = authService.getStoredUser();
+      
+      // Vérification supplémentaire que storedUser est un objet valide
+      if (storedUser && typeof storedUser === 'object' && storedUser.id) {
+        setUser(storedUser);
+        setLoading(false);
+      } else if (authService.isAuthenticated()) {
+        getUser();
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.warn('Error in AuthContext useEffect:', error);
+      // En cas d'erreur, on nettoie tout et on arrête le chargement
+      authService.logout();
+      setUser(null);
       setLoading(false);
     }
   }, []);
@@ -71,6 +104,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        isAuthenticated,
         loading,
       }}
     >

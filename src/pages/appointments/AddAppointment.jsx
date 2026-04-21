@@ -1,20 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import symptomService from "../../services/symptomService";
+import appointmentService from "../../services/appointmentService";
+import doctorService from "../../services/doctorService";
 
-export default function AddSymptom() {
+export default function AddAppointment() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: "",
-    severity: "mild",
-    description: "",
-    date_recorded: new Date().toISOString().split('T')[0],
+    doctor_id: "",
+    date: "",
+    time: "",
     notes: "",
   });
 
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      const result = await doctorService.getAll();
+      if (result.success) {
+        const doctorsData = result.data.data || result.data || [];
+        setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError("Failed to load doctors");
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,14 +44,14 @@ export default function AddSymptom() {
     setError("");
 
     try {
-      const result = await symptomService.create(form);
+      const result = await appointmentService.create(form);
       if (result.success) {
-        navigate("/symptoms");
+        navigate("/appointments");
       } else {
         setError(result.error);
       }
     } catch (err) {
-      setError("Failed to add symptom");
+      setError("Failed to add appointment");
     } finally {
       setLoading(false);
     }
@@ -42,6 +64,14 @@ export default function AddSymptom() {
     });
   };
 
+  if (fetchLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -49,16 +79,16 @@ export default function AddSymptom() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Add New Symptom</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Book Appointment</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Record your health symptoms for better tracking
+                Schedule a new medical appointment
               </p>
             </div>
             <button
-              onClick={() => navigate("/symptoms")}
+              onClick={() => navigate("/appointments")}
               className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
             >
-              ← Back to Symptoms
+              ← Back to Appointments
             </button>
           </div>
         </div>
@@ -76,65 +106,53 @@ export default function AddSymptom() {
               )}
 
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Symptom Name *
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="e.g., Headache, Fever, Cough"
-                  value={form.name}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="severity" className="block text-sm font-medium text-gray-700">
-                  Severity *
+                <label htmlFor="doctor_id" className="block text-sm font-medium text-gray-700">
+                  Select Doctor *
                 </label>
                 <select
-                  id="severity"
-                  name="severity"
+                  id="doctor_id"
+                  name="doctor_id"
                   required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  value={form.severity}
+                  value={form.doctor_id}
                   onChange={handleChange}
                 >
-                  <option value="mild">Mild</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="severe">Severe</option>
+                  <option value="">Choose a doctor...</option>
+                  {doctors.map((doctor) => (
+                    <option key={doctor.id} value={doctor.id}>
+                      Dr. {doctor.name} - {doctor.specialty || 'General Practitioner'}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label htmlFor="date_recorded" className="block text-sm font-medium text-gray-700">
-                  Date Recorded *
+                <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                  Appointment Date *
                 </label>
                 <input
-                  id="date_recorded"
-                  name="date_recorded"
+                  id="date"
+                  name="date"
                   type="date"
                   required
+                  min={new Date().toISOString().split('T')[0]}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  value={form.date_recorded}
+                  value={form.date}
                   onChange={handleChange}
                 />
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Description
+                <label htmlFor="time" className="block text-sm font-medium text-gray-700">
+                  Appointment Time *
                 </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  rows={3}
+                <input
+                  id="time"
+                  name="time"
+                  type="time"
+                  required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Describe your symptom in detail..."
-                  value={form.description}
+                  value={form.time}
                   onChange={handleChange}
                 />
               </div>
@@ -146,9 +164,9 @@ export default function AddSymptom() {
                 <textarea
                   id="notes"
                   name="notes"
-                  rows={3}
+                  rows={4}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Any additional information or observations..."
+                  placeholder="Reason for visit, symptoms, or any other information..."
                   value={form.notes}
                   onChange={handleChange}
                 />
@@ -157,7 +175,7 @@ export default function AddSymptom() {
               <div className="flex justify-end space-x-4">
                 <button
                   type="button"
-                  onClick={() => navigate("/symptoms")}
+                  onClick={() => navigate("/appointments")}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Cancel
@@ -170,7 +188,7 @@ export default function AddSymptom() {
                   {loading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   ) : (
-                    "Add Symptom"
+                    "Book Appointment"
                   )}
                 </button>
               </div>
